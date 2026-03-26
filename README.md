@@ -6,6 +6,9 @@ An interactive, multi-architecture Computer Vision system built for automated Pr
 * **YOLOv9-c:** A highly optimized Convolutional Neural Network designed for rapid edge-inference.
 * **RT-DETR-Large:** A Real-Time DEtection TRansformer utilizing global self-attention mechanisms.
 
+## 📂 Dataset Acknowledgment
+The training and testing data used to build these models is based on the open-source PCB defect dataset provided by [Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB](https://github.com/Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB). I extend my gratitude to the original authors for curating and providing the foundational dataset containing standard PCB defects (e.g., missing holes, mouse bites, open circuits, shorts, spurs, and spurious copper) which made this comparative study possible.
+
 ## 📊 Performance Metrics (Official Blind Test)
 Both models were trained for 100 epochs on a custom 640x640 dataset using a Tesla L4 GPU, with hyperparameter tuning customized to the mathematical constraints of each architecture.
 
