@@ -33,4 +33,23 @@ This repository includes a fully functional, local web application that allows u
 4. Launch the application:
    ```bash
    streamlit run app.py
-   
+
+## 📓 Notebooks & Reproducibility
+To ensure full transparency and reproducibility of the comparative study, the complete training and evaluation pipelines are provided in the notebooks/ directory:
+
+* **dataPreprocessing_yaml.ipynb**: Scripts for dataset formatting, automated bounding box conversions, and generating the master data.yaml configuration.
+
+* **YOLO.ipynb & RTDETR_100epoch.ipynb**: The core training loops for both architectures, detailing the specific hyperparameter tuning (e.g., utilizing AdamW to stabilize the Vision Transformer's attention matrices).
+
+* **testYOLO.ipynb & testRT_DETR.ipynb**: The rigorous validation and blind-testing scripts used to generate the final confusion matrices and performance metrics.
+
+* **weightConvertOnnx_checkFPS.ipynb**: Deployment optimization scripts converting raw PyTorch weights (.pt) into the ONNX format for accelerated inference and FPS benchmarking.
+
+## 🛠️ Tech Stack
+* **Deep Learning**: PyTorch, Ultralytics, Original YOLOv9 PyTorch Hub
+
+* **Web Framework**: Streamlit
+
+* **Image Processing**: OpenCV, PIL, Albumentations
+
+* **Deployment / Export**: ONNX
