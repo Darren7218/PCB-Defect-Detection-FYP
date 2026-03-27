@@ -20,8 +20,6 @@ In industrial PCB manufacturing, defects such as *missing holes, mouse bites, op
 ## Tech Stack
 
 
-*(Placeholder: Add an architecture tech-stack graphic here)*
-
 | Category | Technology |
 | :--- | :--- |
 | **Frontend UI** | Streamlit |
@@ -59,8 +57,6 @@ In industrial PCB manufacturing, defects such as *missing holes, mouse bites, op
 
 ## How It Works
 
-[![Workflow Diagram](docs/img/workflow.png)](docs/img/workflow.png)
-*(Placeholder: Add a diagram showing the data flow from upload to detection)*
 
 ### 1. Data Ingestion & Preprocessing
 Raw PCB images and annotations are formatted and automated bounding box conversions are executed via the `dataPreprocessing_yaml.ipynb` pipeline. This generates a master `data.yaml` configuration ensuring the models train on an identical, standardized 640x640 resolution dataset.
