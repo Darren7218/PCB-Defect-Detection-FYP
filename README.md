@@ -2,6 +2,24 @@
 
 The PCB Defect Detection System is an interactive, multi-architecture Computer Vision web application built for automated Printed Circuit Board (PCB) quality inspection. This Final Year Project (FYP) serves as a comprehensive comparative study evaluating the performance of state-of-the-art Convolutional Neural Networks (CNNs) against Vision Transformers (ViTs) in highly precise industrial environments.
 
+---
+
+## 📑 Table of Contents
+1. [Architectures Compared](#-architectures-compared)
+2. [Project Overview](#project-overview)
+3. [Problem Statement](#problem-statement)
+4. [Tech Stack & Technologies](#tech-stack)
+5. [Key Features](#key-features)
+6. [How It Works](#how-it-works)
+7. [Streamlit Web Application](#-streamlit-web-application)
+8. [Performance Summary](#performance-summary)
+9. [Technical Highlights & Challenges](#technical-highlights)
+10. [Notebooks & Reproducibility](#-notebooks--reproducibility)
+11. [Future Improvements](#future-improvements)
+12. [Dataset Acknowledgment & Disclaimer](#dataset-acknowledgment--disclaimer)
+
+---
+
 ### 🧠 Architectures Compared
 * **YOLOv9-c:** A highly optimized Convolutional Neural Network designed for rapid edge-inference.
 * **RT-DETR-Large:** A Real-Time DEtection TRansformer utilizing global self-attention mechanisms.
@@ -56,7 +74,6 @@ In industrial PCB manufacturing, defects such as *missing holes, mouse bites, op
 * Practical product thinking by wrapping complex ML models in an accessible, user-friendly frontend dashboard.
 
 ## How It Works
-
 
 ### 1. Data Ingestion & Preprocessing
 Raw PCB images and annotations are formatted and automated bounding box conversions are executed via the `dataPreprocessing_yaml.ipynb` pipeline. This generates a master `data.yaml` configuration ensuring the models train on an identical, standardized 640x640 resolution dataset.
