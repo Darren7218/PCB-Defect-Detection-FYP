@@ -17,6 +17,8 @@ The PCB Defect Detection System is an interactive, multi-architecture Computer V
 10. [Notebooks & Reproducibility](#-notebooks--reproducibility)
 11. [Future Improvements](#future-improvements)
 12. [Dataset Acknowledgment & Disclaimer](#dataset-acknowledgment--disclaimer)
+13. [Streamlit Web Application](#-streamlit-web-application)
+14. [Notebooks & Reproducibility](#-notebooks--reproducibility)
 
 ---
 
