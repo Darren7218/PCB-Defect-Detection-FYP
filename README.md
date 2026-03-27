@@ -19,7 +19,7 @@ In industrial PCB manufacturing, defects such as *missing holes, mouse bites, op
 
 ## Tech Stack
 
-[![Tech Stack Architecture](docs/img/tech-stack.png)](docs/img/tech-stack.png)
+
 *(Placeholder: Add an architecture tech-stack graphic here)*
 
 | Category | Technology |
