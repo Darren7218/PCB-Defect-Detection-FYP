@@ -125,6 +125,7 @@ To move beyond just academic metrics, the project includes `weightConvertOnnx_ch
 
 ## Future Improvements
 
+* **Apply Foundation Model Fine-Tuning:** Applying GroundingDINO for few-shot learning and detect defects with human inputs
 * **TensorRT Optimization:** Upgrading the ONNX models to NVIDIA TensorRT engines for maximum inference speed on industrial edge devices.
 * **Edge Deployment:** Porting the system to an NVIDIA Jetson Nano or Raspberry Pi to test real-world factory floor latency.
 * **Instance Segmentation:** Upgrading bounding boxes to pixel-perfect segmentation masks to calculate the exact surface area of PCB defects (e.g., measuring the exact size of a "mouse bite").
