@@ -25,6 +25,7 @@ The PCB Defect Detection System is an interactive, multi-architecture Computer V
 ### 🧠 Architectures Compared
 * **YOLOv9-c:** A highly optimized Convolutional Neural Network designed for rapid edge-inference.
 * **RT-DETR-Large:** A Real-Time DEtection TRansformer utilizing global self-attention mechanisms.
+* **PatchCore L2/L3:** An unsupervised anomaly-detection pipeline for surfacing unusual PCB regions without requiring defect-class labels.
 
 ## 📂 Dataset Acknowledgment
 The training and testing data used to build these models is based on the open-source PCB defect dataset provided by [Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB](https://github.com/Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB). I extend my gratitude to the original authors for curating and providing the foundational dataset containing standard PCB defects (e.g., missing holes, mouse bites, open circuits, shorts, spurs, and spurious copper) which made this comparative study possible.
@@ -58,11 +59,14 @@ In industrial PCB manufacturing, defects such as *missing holes, mouse bites, op
 | **Format Conversion** | Pycocotools | Handles bounding box conversions and annotations formatting |
 | **Deployment Export** | ONNX Runtime | Converts raw PyTorch `.pt` weights to optimized `.onnx` for faster FPS |
 | **Environment Control** | Jupyter Notebook | Segregated execution for training, hyperparameter tuning, and validation |
+| **Anomaly Detection** | PatchCore | Builds a normal-board memory bank from ResNet `layer2` + `layer3` features |
 
 ## Key Features
 
 * **Multi-Architecture Integration:** Hot-swap between YOLOv9 and RT-DETR within the same user interface.
 * **Real-Time Streamlit Interface:** Upload raw PCB images and run instant defect detection visualizations with interactive bounding boxes and confidence scores.
+* **Bulk Folder Inspection:** Inspect multiple uploaded images or a local folder recursively, then export summary and detection CSVs.
+* **Unsupervised Anomaly Scoring:** Optional PatchCore L2/L3 mode highlights anomalous PCB regions as heatmap overlays.
 * **Strict Defect Classification:** Accurately identifies 6 distinct industrial PCB defects.
 * **Deployment Optimization:** Includes pipelines to convert heavy PyTorch models into lightweight ONNX graphs for edge-device deployment benchmarking.
 * **End-to-End Reproducibility:** Segregated Jupyter notebooks detailing data ingestion, bounding box conversion, hyperparameter tuning, and blind-testing.
@@ -90,6 +94,9 @@ When a user uploads an image to the Streamlit app, they select their desired arc
 
 ### 4. Evaluation & Visualization
 The output generates precise bounding boxes overlaid on the PCB image, highlighting the defect location, the specific defect class, and the model's confidence threshold.
+
+### 5. PatchCore L2/L3 Anomaly Pipeline
+For novel or rare defects, `patchcore_l2l3.py` trains a memory bank from normal PCB images only. It uses `layer2` and `layer3` features by default because they retain local texture detail while adding enough context for PCB inspection. The Streamlit app can load `patchcore_l2l3.pt` as a third inspection mode.
 
 ## Current Implementation Status
 
@@ -144,11 +151,19 @@ This repository includes a fully functional, local web application that allows u
 1. Clone this repository to your local machine.
 2. Install the required dependencies:
    ```bash
-   pip install streamlit ultralytics torch torchvision pillow opencv-python albumentations pycocotools-windows
-3. Ensure both yolov9_best.pt and rtdetr_best.pt weights are in the root directory.
+   pip install -r requirements.txt
+   ```
+3. Ensure `yolov9_best.pt` and `rtdetr_best.pt` are in the root directory. For PatchCore mode, also place `patchcore_l2l3.pt` in the root directory.
 4. Launch the application:
    ```bash
    streamlit run app.py
+   ```
+
+### Bulk Inspection
+The app supports single-image inspection, multi-image upload, and local folder inspection with optional recursive scanning. See [docs/bulk-inspection.md](docs/bulk-inspection.md) for the bulk workflow.
+
+### PatchCore Anomaly Detection
+To fit a normal-board memory bank and run anomaly scoring, see [docs/patchcore-pipeline.md](docs/patchcore-pipeline.md).
 
 ## 📓 Notebooks & Reproducibility
 To ensure full transparency and reproducibility of the comparative study, the complete training and evaluation pipelines are provided in the notebooks/ directory:
