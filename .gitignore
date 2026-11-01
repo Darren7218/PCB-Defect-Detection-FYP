@@ -1,25 +1,43 @@
-# Ignore Heavy AI Model Weights
-*.pt
-*.pth
-
-# Ignore Large Datasets and Archives
-*.zip
-*.rar
-*.tar.gz
-VOC_PCB/
-yolo_ready/
-sample_images/
-
-# Ignore Python Caches & Virtual Environments
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.venv/
 venv/
 env/
 
-# Ignore Streamlit & Editor Settings
-.streamlit/
-.vscode/
+# Secrets & Credentials (NEVER COMMIT)
+kaggle.json
+.kaggle/
+.env
+*.pem
+*.key
 
-# Ignore OS Junk Files
-.DS_Store
-Thumbs.db
+# Large Model Checkpoints & Indices
+weights/*.pt
+weights/*.pth
+weights/*.onnx
+weights/*.engine
+weights/*.npz
+weights/*.faiss
+*.pt
+*.onnx
+*.npz
+*.faiss
+
+# Local Datasets & Large Raw Media
+datasets/
+VOC_PCB/
+good/
+good_augmented/
+kaggle_upload/
+patchcore_results/
+runs/
+.ultralytics/
+
+# Local Report Drafts & Backups
+*.docx
+~$*.docx
+FYP_Report/
+PDL-Assignment*
+*_backup.*

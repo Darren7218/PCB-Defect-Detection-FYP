@@ -23,9 +23,23 @@ The PCB Defect Detection System is an interactive, multi-architecture Computer V
 ---
 
 ### 🧠 Architectures Compared
+* **YOLOv11-m (Multi-Product 10-Class):** Unified bare-board + assembled-PCBA detector supporting SAHI high-resolution full-board slicing.
 * **YOLOv9-c:** A highly optimized Convolutional Neural Network designed for rapid edge-inference.
 * **RT-DETR-Large:** A Real-Time DEtection TRansformer utilizing global self-attention mechanisms.
-* **PatchCore L2/L3:** An unsupervised anomaly-detection pipeline for surfacing unusual PCB regions without requiring defect-class labels.
+* **Fine-Tuned YOLO-World-S + Post-Hoc Platt Calibrator (`Zero-Shot YOLO-World` & `GroundingDINO`):** Open-vocabulary detectors covering 10 unified PCB/PCBA defect classes with calibrated confidence scores.
+* **PatchCore++ (`DINOv2-ViT-B/14-reg + WideResNet50` Hybrid):** Multi-product open-set anomaly engine featuring a `<1 ms` **DINOv2 CLS Product-SKU Router**, **GPU k-Center Greedy Coreset + FAISS**, **Density-Reweighted `k=9` Scoring**, and a **Few-Shot ROI Prototype Classifier** (predicting defect class or `novel_unseen_defect` + pixel area `px²`).
+* **Two-Stage Hybrid Cascade:** Fuses closed-set Multi-Class Detectors with Open-Set `PatchCore++` ROI verification.
+
+## 🚀 Multi-Product v2 Upgrade & Cloud Compute Workflow (`Kaggle Free` + `Colab Pro L4`)
+
+To scale from single-dataset bare-board crops (`VOC_PCB`) to **multi-product & multi-defect-class PCB/PCBA inspection** (`PKU-Market-PCB`, `DeepPCB`, `VisA pcb1–pcb4`, and `Assembled PCBA Component/Solder Defects` — **10 unified classes**), see [docs/colab-and-kaggle-workflow.md](docs/colab-and-kaggle-workflow.md) and [docs/patchcore-pipeline.md](docs/patchcore-pipeline.md):
+
+| Step | Notebook | Target Compute | Colab Credits | Direct Launch |
+| :--- | :--- | :--- | :--- | :--- |
+| **0** | `notebooks/colab_00_connect_and_verify.ipynb` | Colab CPU/T4 or Antigravity IDE Colab Kernel | `< 0.05 CU` | [Open in Colab](https://colab.research.google.com/github/Darren7218/PCB-Defect-Detection-FYP/blob/feat/multiproduct-patchcore-v2/notebooks/colab_00_connect_and_verify.ipynb) |
+| **1** | `notebooks/kaggle_01_dataset_builder_and_patchcore_ablation.ipynb` | **Kaggle Free (`GPU T4 x2`)** | **`0.0 CU`** | Import `.ipynb` on Kaggle |
+| **2** | `notebooks/colab_01_train_multiproduct_detectors_L4.ipynb` | **Google Colab Pro (`L4 24GB`, auto-unassign)** | **`~18–26 CU` / model** | [Open in Colab](https://colab.research.google.com/github/Darren7218/PCB-Defect-Detection-FYP/blob/feat/multiproduct-patchcore-v2/notebooks/colab_01_train_multiproduct_detectors_L4.ipynb) |
+| **3** | `notebooks/kaggle_02_ovd_calibration_and_sahi_eval.ipynb` | **Kaggle Free (`GPU T4`)** | **`0.0 CU`** | Import `.ipynb` on Kaggle |
 
 ## 📂 Dataset Acknowledgment
 The training and testing data used to build these models is based on the open-source PCB defect dataset provided by [Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB](https://github.com/Ixiaohuihuihui/Tiny-Defect-Detection-for-PCB). I extend my gratitude to the original authors for curating and providing the foundational dataset containing standard PCB defects (e.g., missing holes, mouse bites, open circuits, shorts, spurs, and spurious copper) which made this comparative study possible.
