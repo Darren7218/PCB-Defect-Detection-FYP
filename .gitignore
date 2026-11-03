@@ -26,14 +26,14 @@ weights/*.faiss
 *.faiss
 
 # Local Datasets & Large Raw Media
-datasets/
-VOC_PCB/
-good/
-good_augmented/
-kaggle_upload/
-patchcore_results/
-runs/
-.ultralytics/
+/datasets/
+/VOC_PCB/
+/good/
+/good_augmented/
+/kaggle_upload/
+/patchcore_results/
+/runs/
+/.ultralytics/
 
 # Local Report Drafts & Backups
 *.docx
