@@ -478,15 +478,57 @@ def ingest_visa_pcb(
                                 _write_yolo_labels(det_out / "labels" / det_split / f"visa_{obj}_{img_path.stem}.txt", boxes)
                                 stats[f"visa_det_{det_split}"] += 1
     else:
-        # Already in MVTec/Anomalib folder structure
+        # Already in MVTec/Anomalib folder structure (e.g. MoxVox/PCB-Bank pcb1/{train/good, test/good, test/bad, ground_truth/bad})
         for obj in pcb_subsets:
             cand = visa_root / obj
             if not cand.exists():
                 continue
-            dst = anom_out / f"visa_{obj}"
-            if not dst.exists():
-                shutil.copytree(cand, dst)
-            stats[f"visa_{obj}_copied"] += 1
+            sku_dir = anom_out / f"visa_{obj}"
+            for split_sub in ("train/good", "test/good", "val/good"):
+                src_sub = cand / split_sub
+                if src_sub.exists():
+                    dst_sub = sku_dir / split_sub
+                    dst_sub.mkdir(parents=True, exist_ok=True)
+                    for p in sorted(src_sub.iterdir()):
+                        if p.suffix.lower() in SUPPORTED_IMG_EXTS:
+                            _copy_or_link(p, dst_sub / f"visa_{obj}_{p.name}")
+                            stats[f"visa_{obj}_{split_sub.replace('/', '_')}"] += 1
+            for bad_name in ("bad", "anomaly"):
+                src_bad = cand / "test" / bad_name
+                if src_bad.exists():
+                    dst_bad = sku_dir / "test" / "anomaly"
+                    dst_bad.mkdir(parents=True, exist_ok=True)
+                    for p in sorted(src_bad.iterdir()):
+                        if p.suffix.lower() in SUPPORTED_IMG_EXTS:
+                            _copy_or_link(p, dst_bad / f"visa_{obj}_{p.name}")
+                            stats[f"visa_{obj}_test_anomaly"] += 1
+                            # Check matching ground-truth mask
+                            for gt_sub in (cand / "ground_truth" / bad_name, cand / "ground_truth" / "test" / bad_name):
+                                for m_cand in (gt_sub / p.name, gt_sub / f"{p.stem}.png", gt_sub / f"{p.stem}_mask.png"):
+                                    if m_cand.exists():
+                                        mask = cv2.imread(str(m_cand), cv2.IMREAD_GRAYSCALE)
+                                        if mask is not None:
+                                            bin_mask = ((mask > 0).astype(np.uint8)) * 255
+                                            mask_dst = sku_dir / "ground_truth" / "test" / "anomaly" / f"visa_{obj}_{p.stem}_mask.png"
+                                            mask_dst.parent.mkdir(parents=True, exist_ok=True)
+                                            cv2.imwrite(str(mask_dst), bin_mask)
+                                            # Extract bounding boxes for 10-class detector
+                                            h, w = bin_mask.shape[:2]
+                                            num_cc, _, cc_stats, _ = cv2.connectedComponentsWithStats(bin_mask, connectivity=8)
+                                            boxes = []
+                                            for cc_idx in range(1, num_cc):
+                                                x, y, bw_px, bh_px, area = cc_stats[cc_idx]
+                                                if area < 12:
+                                                    continue
+                                                ybox = _xyxy_to_yolo(x, y, x + bw_px, y + bh_px, w, h)
+                                                if ybox is not None:
+                                                    boxes.append((9, *ybox))
+                                            if boxes:
+                                                det_split = "test" if rng.random() < 0.5 else "train"
+                                                _copy_or_link(p, det_out / "images" / det_split / f"visa_{obj}_{p.name}")
+                                                _write_yolo_labels(det_out / "labels" / det_split / f"visa_{obj}_{p.stem}.txt", boxes)
+                                                stats[f"visa_det_{det_split}"] += 1
+                                        break
 
     return dict(stats)
 
@@ -523,6 +565,15 @@ def ingest_pcba_yolo_or_voc(
         else:
             for m in re.finditer(r"^\s*(\d+)\s*:\s*['\"]?([^'\"\n#]+)['\"]?", raw_text, flags=re.MULTILINE):
                 src_id_to_name[int(m.group(1))] = m.group(2).strip()
+            if not src_id_to_name:
+                names_block = re.search(r"names\s*:\s*\r?\n((?:\s*-\s*[^\r\n]+\r?\n?)+)", raw_text)
+                if names_block:
+                    items = [
+                        re.sub(r"^\s*-\s*", "", line).strip().strip("'\"")
+                        for line in names_block.group(1).splitlines()
+                        if line.strip().startswith("-")
+                    ]
+                    src_id_to_name = {i: name for i, name in enumerate(items)}
 
         id_remap: Dict[int, int] = {}
         for src_id, src_name in src_id_to_name.items():
@@ -627,6 +678,25 @@ def pack_directory_to_tar(source_dir: Path, tar_path: Path) -> Path:
     return tar_path
 
 
+def download_hf_pcba_solder(target_dir: Path) -> Path:
+    """Download public ParsaVictor/pcb-solder-defect-detection dataset from HuggingFace CDN."""
+    import urllib.request
+
+    pcba_dir = target_dir / "pcba_solder"
+    pcba_dir.mkdir(parents=True, exist_ok=True)
+    for fname in ("data.yaml", "images_and_labels.zip"):
+        dest = pcba_dir / fname
+        if not dest.exists():
+            url = f"https://huggingface.co/datasets/ParsaVictor/pcb-solder-defect-detection/resolve/main/{fname}"
+            print(f"[PCBA] Downloading {url} -> {dest} ...")
+            urllib.request.urlretrieve(url, str(dest))
+    extract_root = pcba_dir / "final_solder"
+    if not extract_root.exists():
+        with zipfile.ZipFile(pcba_dir / "images_and_labels.zip", "r") as zf:
+            zf.extractall(pcba_dir)
+    return extract_root if extract_root.exists() else pcba_dir
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description="Build Unified 10-Class & Multi-Product PCB/PCBA Datasets.")
     ap.add_argument("--out-dir", default="datasets", help="Output root directory")
@@ -634,6 +704,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--good-boards", default=None, help="Path to full-board defect-free PCB templates (good/)")
     ap.add_argument("--deeppcb", default=None, help="Path to DeepPCB root (or pass --download-deeppcb)")
     ap.add_argument("--download-deeppcb", action="store_true", help="Automatically git clone DeepPCB")
+    ap.add_argument("--download-hf-pcba", action="store_true", help="Automatically download HuggingFace PCBA solder/component dataset")
     ap.add_argument("--visa", default=None, help="Path to VisA root directory (containing pcb1..pcb4)")
     ap.add_argument("--pcba", nargs="*", default=[], help="One or more Assembled PCBA component/solder dataset roots")
     ap.add_argument("--pack-tar", action="store_true", help="Bundle outputs into .tar files for Colab SSD staging")
@@ -673,8 +744,11 @@ def main() -> None:
     if args.visa:
         manifest["sources"]["visa_pcb"] = ingest_visa_pcb(Path(args.visa), det_out, anom_out, seed=args.seed)
 
-    for idx, pcba_dir in enumerate(args.pcba):
-        p = Path(pcba_dir)
+    pcba_dirs = [Path(p) for p in args.pcba]
+    if args.download_hf_pcba:
+        pcba_dirs.append(download_hf_pcba_solder(out_root / "_raw"))
+
+    for idx, p in enumerate(pcba_dirs):
         if p.exists():
             manifest["sources"][f"pcba_{idx}"] = ingest_pcba_yolo_or_voc(p, det_out, prefix=f"pcba{idx}")
 

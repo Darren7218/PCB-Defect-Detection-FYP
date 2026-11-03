@@ -1,0 +1,107 @@
+{
+  "legacy_github_reported_voc_pcb": {
+    "image_auroc": null,
+    "pixel_auroc_mean": 0.7127,
+    "pixel_auroc_median": 0.7252,
+    "notes": "Original results/patchcore_eval_summary.json (0 normal test images -> image_auroc=null)"
+  },
+  "baseline_v1_multiproduct_repro": {
+    "n_test_images": 276,
+    "n_normal": 96,
+    "n_anomalous": 180,
+    "image_auroc": 0.8351,
+    "f1_max": 0.8241,
+    "pixel_auroc_mean": 0.6374,
+    "pixel_auroc_median": 0.644,
+    "avg_latency_ms": 136.12,
+    "domains": {
+      "pku_pcb": {
+        "n_samples": 157,
+        "n_normal": 40,
+        "n_anomaly": 117,
+        "image_auroc": 0.9754,
+        "pixel_auroc_mean": 0.5883,
+        "pixel_auroc_median": 0.5769
+      },
+      "deeppcb": {
+        "n_samples": 71,
+        "n_normal": 24,
+        "n_anomaly": 47,
+        "image_auroc": 0.5789,
+        "pixel_auroc_mean": 0.7425,
+        "pixel_auroc_median": 0.7491
+      },
+      "visa_pcb": {
+        "n_samples": 48,
+        "n_normal": 32,
+        "n_anomaly": 16,
+        "image_auroc": 0.5234,
+        "pixel_auroc_mean": 0.6875,
+        "pixel_auroc_median": 0.7541
+      }
+    }
+  },
+  "patchcore_plus_v2_multiproduct": {
+    "n_test_images": 276,
+    "n_normal": 96,
+    "n_anomalous": 180,
+    "image_auroc": 0.9019,
+    "f1_max": 0.8918,
+    "pixel_auroc_mean": 0.7352,
+    "pixel_auroc_median": 0.7788,
+    "avg_latency_ms": 212.67,
+    "domains": {
+      "pku_pcb": {
+        "n_samples": 157,
+        "n_normal": 40,
+        "n_anomaly": 117,
+        "image_auroc": 0.9872,
+        "pixel_auroc_mean": 0.6171,
+        "pixel_auroc_median": 0.6467
+      },
+      "deeppcb": {
+        "n_samples": 71,
+        "n_normal": 24,
+        "n_anomaly": 47,
+        "image_auroc": 0.8005,
+        "pixel_auroc_mean": 0.946,
+        "pixel_auroc_median": 0.9691
+      },
+      "visa_pcb": {
+        "n_samples": 48,
+        "n_normal": 32,
+        "n_anomaly": 16,
+        "image_auroc": 0.541,
+        "pixel_auroc_mean": 0.9801,
+        "pixel_auroc_median": 0.9937
+      }
+    }
+  },
+  "prototype_bank_counts": {
+    "missing_component": 12,
+    "bad_solder": 12,
+    "short": 12,
+    "open_circuit": 12,
+    "mouse_bite": 12,
+    "spurious_copper": 12,
+    "missing_hole": 12,
+    "spur": 12,
+    "surface_scratch": 12,
+    "misaligned_component": 12
+  },
+  "num_product_skus": 12,
+  "product_skus": [
+    "pku_pcb_01",
+    "pku_pcb_04",
+    "pku_pcb_07",
+    "pku_pcb_10",
+    "pku_pcb_12",
+    "deeppcb_00041",
+    "deeppcb_20085",
+    "deeppcb_44000",
+    "visa_pcb1",
+    "visa_pcb2",
+    "visa_pcb3",
+    "visa_pcb4"
+  ]
+}

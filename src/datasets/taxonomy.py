@@ -75,6 +75,7 @@ UNIFIED_DEFECT_SPECS: tuple[DefectClassSpec, ...] = (
             "cold_solder",
             "excess_solder",
             "insufficient_solder",
+            "solder_void",
             "solder_ball",
             "solder_defect",
             "melt",
@@ -124,6 +125,9 @@ UNIFIED_DEFECT_SPECS: tuple[DefectClassSpec, ...] = (
             "contamination",
             "spot",
             "damage",
+            "physical_damage",
+            "burn",
+            "oxidation",
         ),
     ),
 )
