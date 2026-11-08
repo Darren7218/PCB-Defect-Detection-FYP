@@ -681,6 +681,7 @@ def pack_directory_to_tar(source_dir: Path, tar_path: Path) -> Path:
 def download_hf_pcba_solder(target_dir: Path) -> Path:
     """Download public ParsaVictor/pcb-solder-defect-detection dataset from HuggingFace CDN."""
     import urllib.request
+    import zipfile
 
     pcba_dir = target_dir / "pcba_solder"
     pcba_dir.mkdir(parents=True, exist_ok=True)
