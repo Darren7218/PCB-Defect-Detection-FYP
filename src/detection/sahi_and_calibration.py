@@ -337,7 +337,7 @@ def render_detections_rgb(
     detections: Sequence[Dict[str, object]],
 ) -> np.ndarray:
     """Draw color-coded bounding boxes onto an RGB image array."""
-    canvas = base_rgb.copy()
+    canvas = np.asarray(base_rgb, dtype=np.uint8).copy()
     for det in detections:
         x1, y1, x2, y2 = int(det["xmin"]), int(det["ymin"]), int(det["xmax"]), int(det["ymax"])
         cls_name = str(det["class"])

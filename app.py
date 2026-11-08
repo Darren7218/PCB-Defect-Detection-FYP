@@ -28,7 +28,7 @@ import torch
 from PIL import Image, ImageOps
 
 from src.anomaly.patchcore_plus import SUPPORTED_EXTENSIONS, PatchCorePlus
-from src.datasets.taxonomy import DEFAULT_OVD_PROMPTS_10CLS
+from src.datasets.taxonomy import DEFAULT_OVD_PROMPTS_10CLS, UNIFIED_CLASS_NAMES
 from src.detection.sahi_and_calibration import (
     ConfidenceCalibrator,
     class_aware_nms_nmm,
@@ -221,6 +221,8 @@ def _ultralytics_to_records(result, prompt_class_map: Optional[Dict[str, str]] =
             label = (prompt_class_map or {}).get(desc, desc)
         else:
             label = names.get(cid, str(cid)) if isinstance(names, dict) else str(cid)
+            if label not in UNIFIED_CLASS_NAMES and 0 <= cid < len(UNIFIED_CLASS_NAMES):
+                label = UNIFIED_CLASS_NAMES[cid]
         xmin, ymin, xmax, ymax = box.xyxy[0].detach().cpu().numpy().tolist()
         records.append(
             {

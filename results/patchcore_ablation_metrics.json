@@ -1,107 +1,142 @@
 {
+  "gpu": "NVIDIA L4",
   "legacy_github_reported_voc_pcb": {
     "image_auroc": null,
     "pixel_auroc_mean": 0.7127,
-    "pixel_auroc_median": 0.7252,
-    "notes": "Original results/patchcore_eval_summary.json (0 normal test images -> image_auroc=null)"
+    "pixel_auroc_median": 0.7252
   },
   "baseline_v1_multiproduct_repro": {
-    "n_test_images": 276,
-    "n_normal": 96,
-    "n_anomalous": 180,
-    "image_auroc": 0.8351,
-    "f1_max": 0.8241,
-    "pixel_auroc_mean": 0.6374,
-    "pixel_auroc_median": 0.644,
-    "avg_latency_ms": 136.12,
+    "n_test_images": 485,
+    "n_normal": 206,
+    "n_anomalous": 279,
+    "image_auroc": 0.7896,
+    "f1_max": 0.7708,
+    "pixel_auroc_mean": 0.6608,
+    "pixel_auroc_median": 0.6718,
+    "avg_latency_ms": 31.18,
     "domains": {
       "pku_pcb": {
-        "n_samples": 157,
-        "n_normal": 40,
-        "n_anomaly": 117,
-        "image_auroc": 0.9754,
-        "pixel_auroc_mean": 0.5883,
-        "pixel_auroc_median": 0.5769
+        "n_samples": 241,
+        "image_auroc": 0.9779,
+        "pixel_auroc_mean": 0.5917,
+        "pixel_auroc_median": 0.585
       },
       "deeppcb": {
-        "n_samples": 71,
-        "n_normal": 24,
-        "n_anomaly": 47,
-        "image_auroc": 0.5789,
-        "pixel_auroc_mean": 0.7425,
-        "pixel_auroc_median": 0.7491
+        "n_samples": 180,
+        "image_auroc": 0.7125,
+        "pixel_auroc_mean": 0.7501,
+        "pixel_auroc_median": 0.7716
       },
       "visa_pcb": {
-        "n_samples": 48,
-        "n_normal": 32,
-        "n_anomaly": 16,
-        "image_auroc": 0.5234,
-        "pixel_auroc_mean": 0.6875,
-        "pixel_auroc_median": 0.7541
+        "n_samples": 64,
+        "image_auroc": 0.5375,
+        "pixel_auroc_mean": 0.6425,
+        "pixel_auroc_median": 0.6127
+      }
+    }
+  },
+  "patchcore_plus_v2_wrn50_512px": {
+    "n_test_images": 485,
+    "n_normal": 206,
+    "n_anomalous": 279,
+    "image_auroc": 0.9405,
+    "f1_max": 0.9076,
+    "pixel_auroc_mean": 0.8097,
+    "pixel_auroc_median": 0.9206,
+    "avg_latency_ms": 52.24,
+    "domains": {
+      "pku_pcb": {
+        "n_samples": 241,
+        "image_auroc": 0.9935,
+        "pixel_auroc_mean": 0.6563,
+        "pixel_auroc_median": 0.6733
+      },
+      "deeppcb": {
+        "n_samples": 180,
+        "image_auroc": 0.9851,
+        "pixel_auroc_mean": 0.9625,
+        "pixel_auroc_median": 0.9755
+      },
+      "visa_pcb": {
+        "n_samples": 64,
+        "image_auroc": 0.5542,
+        "pixel_auroc_mean": 0.9853,
+        "pixel_auroc_median": 0.9938
+      }
+    }
+  },
+  "patchcore_plus_v2_dinov2_hybrid_518px": {
+    "n_test_images": 485,
+    "n_normal": 206,
+    "n_anomalous": 279,
+    "image_auroc": 0.9399,
+    "f1_max": 0.9097,
+    "pixel_auroc_mean": 0.8059,
+    "pixel_auroc_median": 0.9153,
+    "avg_latency_ms": 86.84,
+    "domains": {
+      "pku_pcb": {
+        "n_samples": 241,
+        "image_auroc": 0.9886,
+        "pixel_auroc_mean": 0.6491,
+        "pixel_auroc_median": 0.6559
+      },
+      "deeppcb": {
+        "n_samples": 180,
+        "image_auroc": 0.9821,
+        "pixel_auroc_mean": 0.9621,
+        "pixel_auroc_median": 0.9751
+      },
+      "visa_pcb": {
+        "n_samples": 64,
+        "image_auroc": 0.5437,
+        "pixel_auroc_mean": 0.9849,
+        "pixel_auroc_median": 0.9939
       }
     }
   },
   "patchcore_plus_v2_multiproduct": {
-    "n_test_images": 276,
-    "n_normal": 96,
-    "n_anomalous": 180,
-    "image_auroc": 0.9019,
-    "f1_max": 0.8918,
-    "pixel_auroc_mean": 0.7352,
-    "pixel_auroc_median": 0.7788,
-    "avg_latency_ms": 212.67,
+    "n_test_images": 485,
+    "n_normal": 206,
+    "n_anomalous": 279,
+    "image_auroc": 0.9405,
+    "f1_max": 0.9076,
+    "pixel_auroc_mean": 0.8097,
+    "pixel_auroc_median": 0.9206,
+    "avg_latency_ms": 52.24,
     "domains": {
       "pku_pcb": {
-        "n_samples": 157,
-        "n_normal": 40,
-        "n_anomaly": 117,
-        "image_auroc": 0.9872,
-        "pixel_auroc_mean": 0.6171,
-        "pixel_auroc_median": 0.6467
+        "n_samples": 241,
+        "image_auroc": 0.9935,
+        "pixel_auroc_mean": 0.6563,
+        "pixel_auroc_median": 0.6733
       },
       "deeppcb": {
-        "n_samples": 71,
-        "n_normal": 24,
-        "n_anomaly": 47,
-        "image_auroc": 0.8005,
-        "pixel_auroc_mean": 0.946,
-        "pixel_auroc_median": 0.9691
+        "n_samples": 180,
+        "image_auroc": 0.9851,
+        "pixel_auroc_mean": 0.9625,
+        "pixel_auroc_median": 0.9755
       },
       "visa_pcb": {
-        "n_samples": 48,
-        "n_normal": 32,
-        "n_anomaly": 16,
-        "image_auroc": 0.541,
-        "pixel_auroc_mean": 0.9801,
-        "pixel_auroc_median": 0.9937
+        "n_samples": 64,
+        "image_auroc": 0.5542,
+        "pixel_auroc_mean": 0.9853,
+        "pixel_auroc_median": 0.9938
       }
     }
   },
+  "selected_backbone": "wide_resnet50_2",
   "prototype_bank_counts": {
-    "missing_component": 12,
-    "bad_solder": 12,
-    "short": 12,
-    "open_circuit": 12,
-    "mouse_bite": 12,
-    "spurious_copper": 12,
-    "missing_hole": 12,
-    "spur": 12,
-    "surface_scratch": 12,
-    "misaligned_component": 12
+    "bad_solder": 80,
+    "misaligned_component": 80,
+    "surface_scratch": 80,
+    "missing_hole": 80,
+    "open_circuit": 80,
+    "short": 80,
+    "spur": 80,
+    "spurious_copper": 80,
+    "mouse_bite": 80,
+    "missing_component": 80
   },
-  "num_product_skus": 12,
-  "product_skus": [
-    "pku_pcb_01",
-    "pku_pcb_04",
-    "pku_pcb_07",
-    "pku_pcb_10",
-    "pku_pcb_12",
-    "deeppcb_00041",
-    "deeppcb_20085",
-    "deeppcb_44000",
-    "visa_pcb1",
-    "visa_pcb2",
-    "visa_pcb3",
-    "visa_pcb4"
-  ]
+  "num_product_skus": 21
 }

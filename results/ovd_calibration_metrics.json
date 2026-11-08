@@ -1,0 +1,57 @@
+{
+  "n_val_images": 150,
+  "total_gt_boxes": 237,
+  "uncalibrated_at_conf_0.25": {
+    "tp": 234,
+    "fp": 7,
+    "recall": 0.9873
+  },
+  "platt_calibrated_at_conf_0.50": {
+    "tp": 235,
+    "fp": 8,
+    "precision": 0.9671,
+    "recall": 0.9916
+  },
+  "fitted_params": {
+    "missing_hole": [
+      1.987212,
+      4.121393
+    ],
+    "mouse_bite": [
+      2.022501,
+      3.552282
+    ],
+    "open_circuit": [
+      1.403004,
+      3.974852
+    ],
+    "short": [
+      1.82154,
+      3.951731
+    ],
+    "spur": [
+      1.66647,
+      3.797242
+    ],
+    "spurious_copper": [
+      1.386564,
+      3.678021
+    ],
+    "bad_solder": [
+      1.7145,
+      3.8459
+    ],
+    "missing_component": [
+      1.7145,
+      3.8459
+    ],
+    "misaligned_component": [
+      1.7145,
+      3.8459
+    ],
+    "surface_scratch": [
+      1.7145,
+      3.8459
+    ]
+  }
+}
