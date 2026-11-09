@@ -620,12 +620,14 @@ class PatchCorePlus:
             sample_paths = img_paths[: min(len(img_paths), 120)]
             raw_sku_scores: List[float] = []
             for p in sample_paths:
+                m_path = mask_lookup.get(str(p)) or mask_lookup.get(Path(p).name)
                 pred = self.predict(
                     p,
                     product_sku=sku,
                     extract_rois=False,
                     render_overlay=False,
                     _raw_unscaled=True,
+                    exclude_mask=m_path,
                 )
                 raw_sku_scores.append(float(pred["score"]))
                 all_pixel_q995.append(float(np.quantile(pred["anomaly_map"], 0.995)))
@@ -757,9 +759,11 @@ class PatchCorePlus:
 
         flat = smoothed_map.ravel()
         peak_val = float(flat.max())
+        bg_med = float(np.median(flat))
+        contrast_val = max(0.0, peak_val - 0.55 * bg_med)
         n_top = max(1, min(6, int(round(len(flat) * self.top_q_pool))))
         top_q_mean = float(np.partition(flat, -n_top)[-n_top:].mean())
-        return 0.40 * reweighted + 0.35 * peak_val + 0.25 * top_q_mean
+        return 0.35 * reweighted + 0.40 * contrast_val + 0.25 * top_q_mean
 
     @torch.no_grad()
     def predict(
@@ -771,6 +775,7 @@ class PatchCorePlus:
         extract_rois: bool = True,
         render_overlay: bool = True,
         _raw_unscaled: bool = False,
+        exclude_mask: Optional[str | Path] = None,
     ) -> Dict[str, object]:
         if self._unified_index is None and not self._sku_indices:
             raise RuntimeError("PatchCorePlus memory bank is empty. Call fit() or from_checkpoint() first.")
@@ -798,12 +803,22 @@ class PatchCorePlus:
         # Suppress narrow crop-border artifacts BEFORE selecting s_star or smoothing
         margin_y = int(round(hf * self.border_margin_ratio))
         margin_x = int(round(wf * self.border_margin_ratio))
+        interior_median = float(
+            np.median(raw_map[margin_y : hf - margin_y, margin_x : wf - margin_x])
+            if (margin_y > 0 and margin_x > 0 and hf > 2 * margin_y + 2 and wf > 2 * margin_x + 2)
+            else np.median(raw_map)
+        )
         if margin_y > 0 and margin_x > 0 and hf > 2 * margin_y + 2 and wf > 2 * margin_x + 2:
-            interior_median = float(np.median(raw_map[margin_y : hf - margin_y, margin_x : wf - margin_x]))
             raw_map[:margin_y, :] = np.minimum(raw_map[:margin_y, :], interior_median)
             raw_map[hf - margin_y :, :] = np.minimum(raw_map[hf - margin_y :, :], interior_median)
             raw_map[:, :margin_x] = np.minimum(raw_map[:, :margin_x], interior_median)
             raw_map[:, wf - margin_x :] = np.minimum(raw_map[:, wf - margin_x :], interior_median)
+        if exclude_mask is not None and Path(exclude_mask).exists():
+            m_gray = cv2.imread(str(exclude_mask), cv2.IMREAD_GRAYSCALE)
+            if m_gray is not None and np.any(m_gray > 0):
+                m_dil = cv2.dilate((m_gray > 0).astype(np.uint8), np.ones((9, 9), np.uint8), iterations=1)
+                m_grid = cv2.resize(m_dil, (wf, hf), interpolation=cv2.INTER_NEAREST)
+                raw_map[m_grid > 0] = interior_median
 
         smoothed_map = (
             gaussian_filter(raw_map, sigma=self.gaussian_sigma) if self.gaussian_sigma > 0 else raw_map

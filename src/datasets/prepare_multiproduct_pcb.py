@@ -230,13 +230,17 @@ def ingest_deeppcb(
 # ============================================================================
 
 def _extract_pku_board_id(filename: str) -> str:
-    """Extract board ID (01..12) from VOC_PCB crop or full-board filename."""
-    m = re.search(r"(?:missing_hole|mouse_bite|mousebite|open_circuit|short|spur|spurious_copper)_(\d{2})_", filename.lower())
-    if m:
-        return m.group(1)
-    m2 = re.match(r"^(\d{1,2})\.(?:jpg|jpeg|png|bmp)$", filename.lower())
+    """Extract board ID (01..12) from VOC_PCB crop (*light_<board_id>_*) or full-board filename."""
+    fname = filename.lower()
+    m0 = re.search(r"light_(\d{2})_", fname)
+    if m0:
+        return m0.group(1)
+    m2 = re.match(r"^(\d{1,2})\.(?:jpg|jpeg|png|bmp)$", fname)
     if m2:
         return f"{int(m2.group(1)):02d}"
+    m = re.search(r"(?:missing_hole|mouse_bite|mousebite|open_circuit|short|spur|spurious_copper)_(\d{2})_", fname)
+    if m:
+        return m.group(1)
     return "00"
 
 
