@@ -1,0 +1,43 @@
+{
+  "model": "yolov8s-world",
+  "prompts": [
+    "pcb with a small missing drill hole defect",
+    "pcb edge showing small irregular bite-shaped damage",
+    "small gap in copper trace on pcb causing open circuit",
+    "two pcb copper traces unintentionally touching each other",
+    "tiny thin copper spike protruding from pcb trace",
+    "small unwanted copper residue or blob on pcb surface"
+  ],
+  "classes": [
+    "missing_hole",
+    "mousebite",
+    "open_circuit",
+    "short",
+    "spur",
+    "spurious_copper"
+  ],
+  "zero_shot": {
+    "mAP50": 0.0,
+    "mAP50_95": 0.0,
+    "per_class_mAP50_95": {
+      "missing_hole": 0.0,
+      "mousebite": 0.0,
+      "open_circuit": 0.0,
+      "short": 0.0,
+      "spur": 0.0,
+      "spurious_copper": 0.0
+    }
+  },
+  "fine_tuned": {
+    "mAP50": 0.9880356487228793,
+    "mAP50_95": 0.5954883606958388,
+    "per_class_mAP50_95": {
+      "missing_hole": 0.6494861193975465,
+      "mousebite": 0.5912242046555064,
+      "open_circuit": 0.5499983886167292,
+      "short": 0.6162639325891404,
+      "spur": 0.5766941109040602,
+      "spurious_copper": 0.58926340801205
+    }
+  }
+}

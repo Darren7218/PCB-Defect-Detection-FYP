@@ -1,54 +1,80 @@
 {
   "gpu": "NVIDIA L4",
-  "models": {
-    "yolo11m": {
-      "checkpoint": "yolo11m_multiproduct_best.pt",
-      "epochs": 45,
-      "train_minutes": 54.58,
-      "test_mAP50": 0.8925,
-      "test_mAP50_95": 0.6026,
-      "test_precision": 0.9182,
-      "test_recall": 0.8677,
-      "per_class_AP50": {
-        "missing_hole": 0.9889,
-        "mouse_bite": 0.9821,
-        "open_circuit": 0.9799,
-        "short": 0.9527,
-        "spur": 0.9776,
-        "spurious_copper": 0.9879,
-        "bad_solder": 0.9148,
-        "missing_component": 0.9206,
-        "misaligned_component": 0.9607,
-        "surface_scratch": 0.2602
-      },
-      "val_mAP50": 0.9014,
-      "val_mAP50_95": 0.6094,
-      "val_precision": 0.915,
-      "val_recall": 0.881
+  "yolov11m_10cls": {
+    "epochs": 55,
+    "val": {
+      "precision": 0.928,
+      "recall": 0.9143,
+      "mAP50": 0.9407,
+      "mAP50_95": 0.6822,
+      "per_class_ap50": {
+        "missing_hole": 0.985,
+        "mouse_bite": 0.9932,
+        "open_circuit": 0.9904,
+        "short": 0.9892,
+        "spur": 0.9646,
+        "spurious_copper": 0.9935,
+        "bad_solder": 0.9028,
+        "missing_component": 0.9686,
+        "misaligned_component": 0.951,
+        "surface_scratch": 0.6691
+      }
     },
-    "rtdetr_l": {
-      "checkpoint": "rtdetr_best.pt",
-      "epochs": 35,
-      "train_minutes": 93.0,
-      "val_mAP50": 0.8897,
-      "val_mAP50_95": 0.6299,
-      "val_precision": 0.894,
-      "val_recall": 0.869,
-      "test_mAP50": 0.8852,
-      "test_mAP50_95": 0.627,
-      "test_precision": 0.891,
-      "test_recall": 0.867,
-      "per_class_AP50": {
-        "missing_hole": 0.9842,
-        "mouse_bite": 0.9715,
-        "open_circuit": 0.9684,
-        "short": 0.946,
-        "spur": 0.969,
-        "spurious_copper": 0.981,
-        "bad_solder": 0.9085,
-        "missing_component": 0.916,
-        "misaligned_component": 0.954,
-        "surface_scratch": 0.2534
+    "test": {
+      "precision": 0.9377,
+      "recall": 0.8856,
+      "mAP50": 0.9249,
+      "mAP50_95": 0.6821,
+      "per_class_ap50": {
+        "missing_hole": 0.9902,
+        "mouse_bite": 0.991,
+        "open_circuit": 0.9909,
+        "short": 0.9476,
+        "spur": 0.9778,
+        "spurious_copper": 0.9888,
+        "bad_solder": 0.9332,
+        "missing_component": 0.9638,
+        "misaligned_component": 0.9905,
+        "surface_scratch": 0.4756
+      }
+    }
+  },
+  "rtdetr_l_10cls": {
+    "epochs": 12,
+    "val": {
+      "precision": 0.9224,
+      "recall": 0.9105,
+      "mAP50": 0.9429,
+      "mAP50_95": 0.6827,
+      "per_class_ap50": {
+        "missing_hole": 0.9874,
+        "mouse_bite": 0.9924,
+        "open_circuit": 0.9842,
+        "short": 0.9941,
+        "spur": 0.9727,
+        "spurious_copper": 0.9943,
+        "bad_solder": 0.9142,
+        "missing_component": 0.967,
+        "misaligned_component": 0.8544,
+        "surface_scratch": 0.7685
+      }
+    },
+    "test": {
+      "precision": 0.9304,
+      "recall": 0.8844,
+      "mAP50": 0.9235,
+      "mAP50_95": 0.6952,
+      "per_class_ap50": {
+        "missing_hole": 0.9933,
+        "mouse_bite": 0.9895,
+        "open_circuit": 0.9922,
+        "short": 0.9529,
+        "spur": 0.9804,
+        "spurious_copper": 0.9923,
+        "bad_solder": 0.9258,
+        "missing_component": 0.9525,
+        "misaligned_component": 0.9398,
+        "surface_scratch": 0.5158
       }
     }
   }

@@ -1,0 +1,124 @@
+{
+  "classes": [
+    "missing_hole",
+    "mousebite",
+    "open_circuit",
+    "short",
+    "spur",
+    "spurious_copper"
+  ],
+  "router": {
+    "specialist_classes": [
+      1,
+      3,
+      4
+    ],
+    "ovd_classes": [
+      0,
+      2,
+      5
+    ],
+    "rtdetr_conf": 0.25,
+    "ovd_conf": 0.001
+  },
+  "rows": {
+    "row1_yolov9c_alone": {
+      "mAP50": 0.9929997324943542,
+      "mAP50_95": 0.6379085779190063,
+      "per_class_mAP50_95": {
+        "missing_hole": 0.6666679978370667,
+        "mousebite": 0.6401811838150024,
+        "open_circuit": 0.600178599357605,
+        "short": 0.6620563864707947,
+        "spur": 0.6175053715705872,
+        "spurious_copper": 0.6408618688583374
+      }
+    },
+    "row2_rtdetr_alone": {
+      "mAP50": 0.9832257032394409,
+      "mAP50_95": 0.6035091876983643,
+      "note": "Recomputed via torchmetrics"
+    },
+    "row3_wbf": {
+      "note": "Carried over: WBF underperforms single specialist (v3 negative result)"
+    },
+    "row4_zs_yolo_world": {
+      "mAP50": 0.0,
+      "note": "Carried over from Day 1 zero-shot eval"
+    },
+    "row5_zs_gdino": {
+      "mAP50": 0.0,
+      "note": "Carried over from Day 2 zero-shot eval"
+    },
+    "row6_ft_ovd": {
+      "mAP50": 0.9880356487228793,
+      "mAP50_95": 0.5954883606958388,
+      "mP": 0.9816736861595933,
+      "mR": 0.983928014651255,
+      "per_class_mAP50_95": {
+        "missing_hole": 0.6494861193975465,
+        "mousebite": 0.5912242046555064,
+        "open_circuit": 0.5499983886167292,
+        "short": 0.6162639325891404,
+        "spur": 0.5766941109040602,
+        "spurious_copper": 0.58926340801205
+      },
+      "conf": 0.001
+    },
+    "row7_hybrid_rtdetr": {
+      "mAP50": 0.9750969409942627,
+      "mAP50_95": 0.6063342094421387,
+      "per_class_mAP50_95": {
+        "missing_hole": 0.6521492004394531,
+        "mousebite": 0.5973222255706787,
+        "open_circuit": 0.5609586238861084,
+        "short": 0.6232797503471375,
+        "spur": 0.5875398516654968,
+        "spurious_copper": 0.6167557835578918
+      }
+    },
+    "row7_hybrid_yolov9c": {
+      "mAP50": 0.925298810005188,
+      "mAP50_95": 0.6035969853401184,
+      "per_class_mAP50_95": {
+        "missing_hole": 0.6134010553359985,
+        "mousebite": 0.6401811838150024,
+        "open_circuit": 0.5363953709602356,
+        "short": 0.6620563864707947,
+        "spur": 0.6175053715705872,
+        "spurious_copper": 0.5520426034927368
+      }
+    },
+    "row8_patchcore": {
+      "memory_bank_mode": "defect_free",
+      "profile": "p100-high-quality",
+      "gpu_names": [
+        "Tesla P100-PCIE-16GB"
+      ],
+      "n_gpus": 1,
+      "pixel_auroc_mean": 0.7126607306517215,
+      "pixel_auroc_median": 0.7150807183354064,
+      "image_auroc": null,
+      "n_bank_imgs": 3600,
+      "bank_candidates": 3600,
+      "sampled_patch_count": 576000,
+      "pool_patch_count": 280000,
+      "patches_per_bank_img": 160,
+      "memory_bank_size": 120000,
+      "feature_dim": 768,
+      "projection_dim": 768,
+      "feature_layers": "layer1+layer2",
+      "feature_norm": true,
+      "input_resolution": 512,
+      "memory_bank_selection": "all candidate images + stratified random patch sampling + random final cap",
+      "coreset_selection": false,
+      "knn": "exact squared L2, chunked, multi-GPU sharded when available",
+      "gaussian_sigma": 2.0,
+      "n_test_with_gt": 2134,
+      "note": "PatchCore high-quality profile p100-high-quality: layer1+layer2, 512px, 160 patches/img, bank=120000, dim=768, exact chunked kNN over 1 device(s). Bank from defect_free."
+    }
+  },
+  "class_balance_train_carryover": {
+    "note": "all classes within 5% (1657-1824 instances). See day5_diagnosis_summary.json."
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "default_operating_raw_conf": 0.0015,
+  "params_by_class": {
+    "missing_hole": [
+      1.987212,
+      4.121393
+    ],
+    "mouse_bite": [
+      2.022501,
+      3.552282
+    ],
+    "open_circuit": [
+      1.403004,
+      3.974852
+    ],
+    "short": [
+      1.82154,
+      3.951731
+    ],
+    "spur": [
+      1.66647,
+      3.797242
+    ],
+    "spurious_copper": [
+      1.386564,
+      3.678021
+    ],
+    "bad_solder": [
+      1.7145,
+      3.8459
+    ],
+    "missing_component": [
+      1.7145,
+      3.8459
+    ],
+    "misaligned_component": [
+      1.7145,
+      3.8459
+    ],
+    "surface_scratch": [
+      1.7145,
+      3.8459
+    ]
+  }
+}
