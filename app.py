@@ -9,11 +9,12 @@ Combines:
     Automatic Product-SKU Router, Greedy Coreset + FAISS, True-RGB Overlay, ROI Prototype Classifier)
   - Two-Stage Hybrid Cascade: Specialist Detector + PatchCore++ Open-Set Novelty & Pixel-Area Fusion
   - High-Resolution SAHI Sliced Inference for full-board (2000px-3000px+) PCB images
-  - Single-Image & Bulk Folder / Multi-Upload Inspection with Summary & Detection CSV Exports
+  - Single-Image, Bulk Folder / Multi-Upload Inspection, & Live Benchmark / Ablation Dashboard
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
 import time
@@ -363,7 +364,7 @@ def inspect_board(
     apply_ovd_calibration: bool = True,
     prompts: Optional[List[str]] = None,
     prompt_class_map: Optional[Dict[str, str]] = None,
-    hybrid_specialist: str = MODEL_YOLOV9C,
+    hybrid_specialist: str = MODEL_YOLOV11M,
     patchcore_threshold: Optional[float] = None,
     product_sku: str = "auto",
 ) -> Dict[str, object]:
@@ -516,6 +517,15 @@ def detections_dataframe(results: List[Dict[str, object]]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def load_json_if_exists(path: Path) -> Optional[Dict[str, object]]:
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+    return None
+
+
 # ============================================================================
 # Streamlit Page & Sidebar Controls
 # ============================================================================
@@ -523,14 +533,14 @@ def detections_dataframe(results: List[Dict[str, object]]) -> pd.DataFrame:
 st.set_page_config(page_title="Multi-Product PCB Inspection Console", page_icon="🔍", layout="wide")
 
 st.sidebar.title("⚙️ Inspection Controls")
-model_choice = st.sidebar.selectbox("🧠 Inspection Pipeline", ALL_MODELS, index=1)
+model_choice = st.sidebar.selectbox("🧠 Inspection Pipeline", ALL_MODELS, index=0)
 
-hybrid_specialist = MODEL_YOLOV9C
+hybrid_specialist = MODEL_YOLOV11M
 if model_choice in {MODEL_HYBRID_CASCADE, MODEL_HYBRID_OVD}:
     hybrid_specialist = st.sidebar.selectbox(
         "Specialist Detector (Stage 1)",
         (MODEL_YOLOV11M, MODEL_YOLOV9C, MODEL_RTDETR),
-        index=1,
+        index=0,
     )
 
 apply_ovd_calibration = True
@@ -615,7 +625,13 @@ st.caption(
     "Unified 10-Class Bare-PCB + Assembled-PCBA Detection · PatchCore++ (DINOv2 Hybrid + Product Router) · SAHI Full-Board Slicing"
 )
 
-single_tab, bulk_tab = st.tabs(["🖼️ Single Board Inspection", "📂 Bulk Folder / Batch Inspection"])
+single_tab, bulk_tab, bench_tab = st.tabs(
+    [
+        "🖼️ Single Board Inspection",
+        "📂 Bulk Folder / Batch Inspection",
+        "📊 Model Benchmark & Ablation Dashboard",
+    ]
+)
 
 with single_tab:
     uploaded_file = st.file_uploader(
@@ -770,3 +786,101 @@ with bulk_tab:
         if batch_errors:
             st.warning(f"{len(batch_errors)} image(s) encountered errors.")
             st.dataframe(pd.DataFrame(batch_errors), use_container_width=True, hide_index=True)
+
+with bench_tab:
+    pc_ablation = load_json_if_exists(REPO_ROOT / "results" / "patchcore_ablation_metrics.json")
+    det_metrics = load_json_if_exists(REPO_ROOT / "results" / "multiproduct_detector_metrics.json")
+    ovd_metrics = load_json_if_exists(REPO_ROOT / "results" / "ovd_calibration_metrics.json")
+
+    st.subheader("🏆 Multi-Product & Multi-Class Benchmark Summary")
+    if pc_ablation and det_metrics:
+        best_pc = pc_ablation.get("patchcore_plus_dinov2_hybrid_518", pc_ablation.get("patchcore_plus_wrn50_v2_512", {}))
+        y11_test = det_metrics.get("yolov11m_10cls", {}).get("test", det_metrics.get("yolov11m_10cls", {}).get("val", {}))
+        ovd_cal = (ovd_metrics or {}).get("calibrated_platt_threshold_0_50", {})
+        top_cols = st.columns(4)
+        top_cols[0].metric(
+            "PatchCore++ Image-AUROC",
+            f"{float(best_pc.get('image_auroc', 0.0)):.4f}",
+            delta=f"+{float(best_pc.get('image_auroc', 0.0)) - 0.5624:.4f} vs v1",
+        )
+        top_cols[1].metric(
+            "PatchCore++ Pixel-AUROC (Med)",
+            f"{float(best_pc.get('pixel_auroc_median', 0.0)):.4f}",
+            delta=f"+{float(best_pc.get('pixel_auroc_median', 0.0)) - 0.7127:.4f} vs v1",
+        )
+        top_cols[2].metric(
+            "YOLOv11-m 10-Class mAP@0.50",
+            f"{float(y11_test.get('mAP50', 0.0)):.4f}",
+            delta="10 Unified Classes",
+        )
+        top_cols[3].metric(
+            "Calibrated OVD Recall @ 0.50",
+            f"{float(ovd_cal.get('recall', 0.0)):.4f}",
+            delta=f"Precision {float(ovd_cal.get('precision', 0.0)):.4f}",
+        )
+
+    if pc_ablation:
+        st.markdown("### 1. Multi-Product PatchCore++ Ablation (`PKU-PCB` + `DeepPCB` + `VisA PCBA`)")
+        pc_rows = []
+        for key, label in (
+            ("legacy_v1_audit_baseline", "Legacy PatchCore v1 (Single-Board Audit)"),
+            ("baseline_wrn50_l2l3_256_pooled", "Baseline WRN50 (L2+L3 @ 256px, Pooled)"),
+            ("patchcore_plus_wrn50_v2_512", "PatchCore++ WRN50-v2 (L1+L2 @ 512px + SKU Router)"),
+            ("patchcore_plus_dinov2_hybrid_518", "PatchCore++ DINOv2-Hybrid (ViT-B/14-reg + WRN50 @ 518px)"),
+        ):
+            item = pc_ablation.get(key)
+            if isinstance(item, dict):
+                doms = item.get("domains", {})
+                pc_rows.append(
+                    {
+                        "Configuration": label,
+                        "Image-AUROC": item.get("image_auroc"),
+                        "F1-Max": item.get("f1_max"),
+                        "Pixel-AUROC (Mean)": item.get("pixel_auroc_mean"),
+                        "Pixel-AUROC (Median)": item.get("pixel_auroc_median"),
+                        "PKU-PCB Pixel-AUROC": doms.get("pku_pcb", {}).get("pixel_auroc_median"),
+                        "DeepPCB Pixel-AUROC": doms.get("deeppcb", {}).get("pixel_auroc_median"),
+                        "VisA PCBA Image-AUROC": doms.get("visa_pcb", {}).get("image_auroc"),
+                        "VisA PCBA Pixel-AUROC": doms.get("visa_pcb", {}).get("pixel_auroc_median"),
+                        "Latency (ms)": item.get("avg_latency_ms"),
+                    }
+                )
+        st.dataframe(pd.DataFrame(pc_rows), use_container_width=True, hide_index=True)
+
+    if det_metrics:
+        st.markdown("### 2. 10-Class Multi-Product Specialist Per-Class AP@0.50")
+        y11 = det_metrics.get("yolov11m_10cls", {})
+        rtd = det_metrics.get("rtdetr_l_10cls", {})
+        y_val_pc = y11.get("val", {}).get("per_class_ap50", {})
+        y_tst_pc = y11.get("test", {}).get("per_class_ap50", {})
+        r_tst_pc = rtd.get("test", rtd.get("val", {})).get("per_class_ap50", {})
+        cls_rows = []
+        for idx, cname in enumerate(UNIFIED_CLASS_NAMES):
+            cls_rows.append(
+                {
+                    "Class ID": idx,
+                    "Unified Defect Class": cname,
+                    "Domain": "Bare PCB (0–5)" if idx < 6 else "Assembled PCBA / Surface (6–9)",
+                    "YOLOv11-m Val AP@0.50": y_val_pc.get(cname),
+                    "YOLOv11-m Blind Test AP@0.50": y_tst_pc.get(cname),
+                    "RT-DETR-L AP@0.50": r_tst_pc.get(cname),
+                }
+            )
+        st.dataframe(pd.DataFrame(cls_rows), use_container_width=True, hide_index=True)
+
+    fig_dir = REPO_ROOT / "results" / "figures"
+    if fig_dir.exists():
+        st.markdown("### 3. Visual Inspection & Benchmark Figures")
+        fcols = st.columns(2)
+        for i, (fname, cap) in enumerate(
+            [
+                ("fig1_patchcore_v1_vs_v2_comparison.png", "Fig 1: Legacy PatchCore v1 vs Upgraded PatchCore++ v2"),
+                ("fig2_multiproduct_4domain_gallery.png", "Fig 2: 4-Dataset Multi-Product Inspection Gallery"),
+                ("fig3_benchmark_charts.png", "Fig 3: Quantitative Ablation & 10-Class AP@0.50 Charts"),
+                ("fig4_sahi_vs_naive_fullboard.png", "Fig 4: Full-Board Naive Downsampling vs SAHI Sliced Inference"),
+            ]
+        ):
+            fpath = fig_dir / fname
+            if fpath.exists():
+                with fcols[i % 2]:
+                    st.image(str(fpath), caption=cap, use_container_width=True)

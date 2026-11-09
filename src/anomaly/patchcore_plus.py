@@ -10,8 +10,9 @@ Directly resolves all 7 bottlenecks identified in the baseline PatchCore audit:
   3. True GPU k-Center Greedy Coreset + Cached FAISS Index (`faiss-gpu` / `faiss-cpu` / chunked `torch.cdist`).
   4. Preserves Edge Contrast Energy: Disables destructive pre-kNN L2 feature collapse by default on CNN stems,
      using deterministic orthogonal projection to 512-d descriptors.
-  5. Robust Scoring & Border Masking: `k=9` Roth et al. neighborhood density re-weighting + top-q% spatial
-     quantile pooling + 3% crop-border suppression + optional ORB homography alignment to golden templates.
+  5. Robust Scoring, Per-SKU Score Standardization & Border Masking: `k=9` Roth et al. neighborhood density
+     re-weighting + peak-preserving top-q% spatial quantile pooling + 3% crop-border suppression applied
+     prior to `s_star` selection + per-SKU normal ceiling standardization + optional ORB homography alignment.
   6. Multi-Class ROI Prototype Head: Connected components on the pixel anomaly map extract tight bounding boxes
      + pixel areas (`px^2`) and classify each anomalous ROI into the 10 unified PCB/PCBA defect classes
      or `novel_unseen_defect` via few-shot feature prototypes.
@@ -50,6 +51,8 @@ SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
 def find_images(paths: Sequence[str | Path], recursive: bool = True) -> List[Path]:
+    if isinstance(paths, (str, Path)):
+        paths = [paths]
     images: List[Path] = []
     for raw_path in paths:
         path = Path(raw_path).expanduser()
@@ -113,7 +116,7 @@ def render_true_rgb_overlay(
     h, w = img_rgb.shape[:2]
 
     amap = cv2.resize(anomaly_map.astype(np.float32), (w, h), interpolation=cv2.INTER_CUBIC)
-    lo = float(np.percentile(amap, 5.0))
+    lo = float(np.percentile(amap, 10.0))
     hi = float(max(amap.max(), (pixel_threshold or lo) * 1.15, lo + 1e-6))
     norm = np.clip((amap - lo) / (hi - lo + 1e-8), 0.0, 1.0)
 
@@ -122,7 +125,7 @@ def render_true_rgb_overlay(
     heat_rgb = cv2.cvtColor(heat_bgr, cv2.COLOR_BGR2RGB)
 
     # Spatially-modulated alpha so clean PCB tracks remain sharp while anomalies glow
-    weight = (alpha * np.power(norm, 0.75))[..., None].astype(np.float32)
+    weight = (alpha * np.power(norm, 0.85))[..., None].astype(np.float32)
     blended = np.clip(img_rgb.astype(np.float32) * (1.0 - weight) + heat_rgb.astype(np.float32) * weight, 0, 255).astype(
         np.uint8
     )
@@ -385,7 +388,7 @@ class PatchCorePlus:
       - Hybrid DINOv2-reg + WideResNet50 multi-scale features
       - Automatic Product-SKU Routing + Unified Multi-Product Coreset fallback
       - GPU k-Center Greedy Coreset + Cached FAISS kNN
-      - Roth et al. `k=9` density-reweighted scoring + top-q% pooling + border suppression
+      - Roth et al. `k=9` density-reweighted scoring + border-suppressed `s_star` + per-SKU standardization
       - Connected-Component ROI Extraction + Few-Shot Defect Prototype Classification
     """
 
@@ -401,7 +404,7 @@ class PatchCorePlus:
         knn_k: int = 9,
         gaussian_sigma: float = 2.0,
         border_margin_ratio: float = 0.03,
-        top_q_pool: float = 0.005,
+        top_q_pool: float = 0.0015,
         sku_sim_threshold: float = 0.80,
         novelty_sim_threshold: float = 0.68,
         pretrained: bool = True,
@@ -412,6 +415,7 @@ class PatchCorePlus:
         sku_centroids: Optional[Dict[str, torch.Tensor]] = None,
         threshold: Optional[float] = None,
         thresholds_by_sku: Optional[Dict[str, float]] = None,
+        sku_score_stats: Optional[Dict[str, Tuple[float, float]]] = None,
         pixel_threshold: Optional[float] = None,
         defect_prototypes: Optional[Dict[str, torch.Tensor]] = None,
         seed: int = 42,
@@ -474,6 +478,9 @@ class PatchCorePlus:
         }
         self.threshold = threshold
         self.thresholds_by_sku: Dict[str, float] = dict(thresholds_by_sku or {})
+        self.sku_score_stats: Dict[str, Tuple[float, float]] = {
+            k: (float(v[0]), float(v[1])) for k, v in (sku_score_stats or {}).items()
+        }
         self.pixel_threshold = pixel_threshold
         self.defect_prototypes: Dict[str, torch.Tensor] = {
             k: F.normalize(v.float().cpu(), p=2, dim=-1) for k, v in (defect_prototypes or {}).items()
@@ -532,13 +539,14 @@ class PatchCorePlus:
         coreset_ratio: float = 0.04,
         max_coreset_per_sku: int = 18000,
         max_unified_coreset: int = 30000,
-        threshold_quantile: float = 0.99,
+        threshold_quantile: float = 0.985,
+        exclude_masks: Optional[Dict[str, str | Path]] = None,
     ) -> "PatchCorePlus":
         """
         Fit either:
           - Single-product / pooled list of normal image paths, OR
           - Multi-product dict `{product_sku: [normal_image_paths...]}` (builds per-SKU coresets
-            + SKU router centroids + unified fallback coreset!).
+            + SKU router centroids + per-SKU score standardization + unified fallback coreset!).
         """
         if isinstance(normal_images, dict):
             sku_map = {k: list(v) for k, v in normal_images.items() if len(v) > 0}
@@ -548,9 +556,11 @@ class PatchCorePlus:
         if not sku_map:
             raise ValueError("No normal images were provided to PatchCorePlus.fit().")
 
+        mask_lookup = {str(k): Path(v) for k, v in (exclude_masks or {}).items()}
         unified_pool: List[torch.Tensor] = []
         self.banks_by_sku = {}
         self.sku_centroids = {}
+        self.sku_score_stats = {}
 
         for sku, img_paths in sku_map.items():
             sku_patches: List[torch.Tensor] = []
@@ -558,8 +568,19 @@ class PatchCorePlus:
 
             for s in range(0, len(img_paths), batch_size):
                 chunk_paths = img_paths[s : s + batch_size]
-                patches, g_sigs, _ = self.extract_descriptors(chunk_paths)
-                sku_patches.append(patches.reshape(-1, patches.shape[-1]).cpu())
+                patches, g_sigs, (hf, wf) = self.extract_descriptors(chunk_paths)
+                for b_idx, p_item in enumerate(chunk_paths):
+                    p_tokens = patches[b_idx].cpu()  # (Hf*Wf, D)
+                    m_path = mask_lookup.get(str(p_item)) or mask_lookup.get(Path(p_item).name)
+                    if m_path is not None and m_path.exists():
+                        m_gray = cv2.imread(str(m_path), cv2.IMREAD_GRAYSCALE)
+                        if m_gray is not None and np.any(m_gray > 0):
+                            m_dil = cv2.dilate((m_gray > 0).astype(np.uint8), np.ones((7, 7), np.uint8), iterations=1)
+                            m_grid = cv2.resize(m_dil, (wf, hf), interpolation=cv2.INTER_NEAREST).ravel()
+                            keep = m_grid == 0
+                            if int(keep.sum()) >= 16:
+                                p_tokens = p_tokens[torch.from_numpy(keep)]
+                    sku_patches.append(p_tokens)
                 sku_globals.append(g_sigs.cpu())
 
             raw_sku_bank = torch.cat(sku_patches, dim=0)
@@ -590,23 +611,37 @@ class PatchCorePlus:
 
         self._rebuild_indices()
 
-        # Fit unsupervised initial thresholds from normal training score distribution
-        all_train_scores: List[float] = []
+        # Fit per-SKU score standardization & thresholds from normal training score distribution
+        all_norm_scores: List[float] = []
         all_pixel_q995: List[float] = []
         self.thresholds_by_sku = {}
 
         for sku, img_paths in sku_map.items():
             sample_paths = img_paths[: min(len(img_paths), 120)]
-            sku_scores = []
+            raw_sku_scores: List[float] = []
             for p in sample_paths:
-                pred = self.predict(p, product_sku=sku, extract_rois=False, render_overlay=False)
-                sku_scores.append(pred["score"])
-                all_train_scores.append(pred["score"])
+                pred = self.predict(
+                    p,
+                    product_sku=sku,
+                    extract_rois=False,
+                    render_overlay=False,
+                    _raw_unscaled=True,
+                )
+                raw_sku_scores.append(float(pred["score"]))
                 all_pixel_q995.append(float(np.quantile(pred["anomaly_map"], 0.995)))
-            self.thresholds_by_sku[sku] = float(np.quantile(np.asarray(sku_scores), threshold_quantile))
 
-        self.threshold = float(np.quantile(np.asarray(all_train_scores), threshold_quantile))
-        self.pixel_threshold = float(np.quantile(np.asarray(all_pixel_q995), 0.98))
+            arr_raw = np.asarray(raw_sku_scores, dtype=np.float64)
+            q50 = float(np.median(arr_raw))
+            q_thr = float(np.quantile(arr_raw, threshold_quantile))
+            iqr = max(float(q_thr - q50), float(np.std(arr_raw)), 1e-3)
+            denom = max(q_thr, q50 + 1.5 * iqr, 1e-4)
+            self.sku_score_stats[sku] = (q50, denom)
+            self.thresholds_by_sku[sku] = 1.0
+            for rs in raw_sku_scores:
+                all_norm_scores.append(float(rs / denom))
+
+        self.threshold = float(np.quantile(np.asarray(all_norm_scores), threshold_quantile)) if all_norm_scores else 1.0
+        self.pixel_threshold = float(np.quantile(np.asarray(all_pixel_q995), 0.98)) if all_pixel_q995 else 0.5
         return self
 
     @torch.no_grad()
@@ -627,7 +662,7 @@ class PatchCorePlus:
             y_score.append(self.predict(p, product_sku=product_sku, extract_rois=False, render_overlay=False)["score"])
 
         if len(set(y_true)) < 2:
-            return float(self.threshold or 0.0)
+            return float(self.threshold or 1.0)
 
         prec, rec, thresh = precision_recall_curve(y_true, y_score)
         f1 = (2.0 * prec[:-1] * rec[:-1]) / (prec[:-1] + rec[:-1] + 1e-8)
@@ -696,18 +731,23 @@ class PatchCorePlus:
             return "novel_unseen_defect", best_sim
         return best_cls, best_sim
 
-    def _compute_image_score(self, dists_knn: np.ndarray, smoothed_map: np.ndarray) -> float:
+    def _compute_image_score(
+        self,
+        dists_knn: np.ndarray,
+        smoothed_map: np.ndarray,
+        raw_map: Optional[np.ndarray] = None,
+    ) -> float:
         """
         Roth et al. (CVPR 2022 Eq. 6) neighborhood density re-weighted anomaly score
-        blended with top-q% spatial quantile mean for border-noise immunity.
+        evaluated on border-suppressed `raw_map`, blended with peak & tight top-q% spatial pooling.
         """
-        d1 = dists_knn[:, 0]
+        d1 = raw_map.ravel() if raw_map is not None else dists_knn[:, 0]
         star_idx = int(np.argmax(d1))
         s_star = float(d1[star_idx])
 
         if dists_knn.shape[1] > 1:
-            neigh = dists_knn[star_idx]
-            # Numerically stable softmax weight
+            neigh = dists_knn[star_idx].copy()
+            neigh[0] = s_star
             shifted = neigh - neigh.min()
             exp_vals = np.exp(np.clip(shifted, -30.0, 30.0))
             weight = 1.0 - (1.0 / max(float(exp_vals.sum()), 1e-8))
@@ -716,9 +756,10 @@ class PatchCorePlus:
             reweighted = s_star
 
         flat = smoothed_map.ravel()
-        n_top = max(1, int(round(len(flat) * self.top_q_pool)))
+        peak_val = float(flat.max())
+        n_top = max(1, min(6, int(round(len(flat) * self.top_q_pool))))
         top_q_mean = float(np.partition(flat, -n_top)[-n_top:].mean())
-        return 0.5 * reweighted + 0.5 * top_q_mean
+        return 0.40 * reweighted + 0.35 * peak_val + 0.25 * top_q_mean
 
     @torch.no_grad()
     def predict(
@@ -729,6 +770,7 @@ class PatchCorePlus:
         reference_template: Optional[str | Path | Image.Image | np.ndarray] = None,
         extract_rois: bool = True,
         render_overlay: bool = True,
+        _raw_unscaled: bool = False,
     ) -> Dict[str, object]:
         if self._unified_index is None and not self._sku_indices:
             raise RuntimeError("PatchCorePlus memory bank is empty. Call fit() or from_checkpoint() first.")
@@ -753,7 +795,7 @@ class PatchCorePlus:
         dists_knn, _ = active_index.search(flat_patches, k=self.knn_k)
         raw_map = dists_knn[:, 0].reshape(hf, wf).astype(np.float32)
 
-        # Suppress narrow crop-border artifacts (e.g. oblique rotation fringes on VOC_PCB)
+        # Suppress narrow crop-border artifacts BEFORE selecting s_star or smoothing
         margin_y = int(round(hf * self.border_margin_ratio))
         margin_x = int(round(wf * self.border_margin_ratio))
         if margin_y > 0 and margin_x > 0 and hf > 2 * margin_y + 2 and wf > 2 * margin_x + 2:
@@ -767,7 +809,13 @@ class PatchCorePlus:
             gaussian_filter(raw_map, sigma=self.gaussian_sigma) if self.gaussian_sigma > 0 else raw_map
         )
 
-        score = self._compute_image_score(dists_knn, smoothed_map)
+        raw_score = self._compute_image_score(dists_knn, smoothed_map, raw_map=raw_map)
+        if not _raw_unscaled and routed_sku in self.sku_score_stats:
+            _, denom = self.sku_score_stats[routed_sku]
+            score = float(raw_score / max(denom, 1e-4))
+        else:
+            score = float(raw_score)
+
         active_threshold = (
             threshold
             if threshold is not None
@@ -781,7 +829,7 @@ class PatchCorePlus:
         if extract_rois and (is_anomaly or threshold is not None) and pix_thr is not None:
             w_orig, h_orig = pil_image.size
             amap_full = cv2.resize(smoothed_map, (w_orig, h_orig), interpolation=cv2.INTER_CUBIC)
-            eff_pix_thr = max(float(pix_thr), float(np.quantile(amap_full, 0.94)))
+            eff_pix_thr = max(float(pix_thr), float(np.quantile(amap_full, 0.965)))
             bin_mask = (amap_full >= eff_pix_thr).astype(np.uint8)
             num_cc, _, cc_stats, _ = cv2.connectedComponentsWithStats(bin_mask, connectivity=8)
             fmap_grid = flat_patches.reshape(hf, wf, -1)
@@ -822,6 +870,7 @@ class PatchCorePlus:
 
         return {
             "score": float(score),
+            "raw_score": float(raw_score),
             "threshold": active_threshold,
             "is_anomaly": is_anomaly,
             "product_sku": routed_sku,
@@ -923,6 +972,7 @@ class PatchCorePlus:
             "sku_centroids": {k: v.detach().cpu() for k, v in self.sku_centroids.items()},
             "threshold": self.threshold,
             "thresholds_by_sku": self.thresholds_by_sku,
+            "sku_score_stats": self.sku_score_stats,
             "pixel_threshold": self.pixel_threshold,
             "defect_prototypes": {k: v.detach().cpu() for k, v in self.defect_prototypes.items()},
         }
@@ -981,7 +1031,7 @@ class PatchCorePlus:
             knn_k=payload.get("knn_k", 9),
             gaussian_sigma=payload.get("gaussian_sigma", 2.0),
             border_margin_ratio=payload.get("border_margin_ratio", 0.03),
-            top_q_pool=payload.get("top_q_pool", 0.005),
+            top_q_pool=payload.get("top_q_pool", 0.0015),
             sku_sim_threshold=payload.get("sku_sim_threshold", 0.80),
             novelty_sim_threshold=payload.get("novelty_sim_threshold", 0.68),
             pretrained=payload.get("pretrained", True),
@@ -992,6 +1042,7 @@ class PatchCorePlus:
             sku_centroids=payload.get("sku_centroids"),
             threshold=payload.get("threshold"),
             thresholds_by_sku=payload.get("thresholds_by_sku"),
+            sku_score_stats=payload.get("sku_score_stats"),
             pixel_threshold=payload.get("pixel_threshold"),
             defect_prototypes=payload.get("defect_prototypes"),
             device=device,
@@ -1092,7 +1143,7 @@ def build_parser() -> argparse.ArgumentParser:
     fit_p.add_argument("--projection-dim", type=int, default=512)
     fit_p.add_argument("--batch-size", type=int, default=8)
     fit_p.add_argument("--coreset-ratio", type=float, default=0.04)
-    fit_p.add_argument("--threshold-quantile", type=float, default=0.99)
+    fit_p.add_argument("--threshold-quantile", type=float, default=0.985)
     fit_p.add_argument("--l2-normalize-cnn", action="store_true")
     fit_p.add_argument("--no-pretrained", action="store_true")
     fit_p.add_argument("--recursive", action=argparse.BooleanOptionalAction, default=True)
